@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Ryujinx.Common;
+using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -7,7 +8,7 @@ namespace Ryujinx.Memory
     /// <summary>
     /// Represents a block of contiguous physical guest memory.
     /// </summary>
-    public sealed class MemoryBlock : IDisposable
+    public sealed class MemoryBlock : DisposableUnmanagedBase
     {
         private IntPtr _pointer;
 
@@ -263,17 +264,10 @@ namespace Ryujinx.Memory
             return (IntPtr)(pointer.ToInt64() + (long)offset);
         }
 
-        /// <summary>
-        /// Frees the memory allocated for this memory block.
-        /// </summary>
-        /// <remarks>
-        /// It's an error to use the memory block after disposal.
-        /// </remarks>
-        public void Dispose() => FreeMemory();
+        private void ThrowObjectDisposed() => throw new ObjectDisposedException(nameof(MemoryBlock));
+        private void ThrowInvalidMemoryRegionException() => throw new InvalidMemoryRegionException();
 
-        ~MemoryBlock() => FreeMemory();
-
-        private void FreeMemory()
+        protected override void DisposeUnmanaged()
         {
             IntPtr ptr = Interlocked.Exchange(ref _pointer, IntPtr.Zero);
 
@@ -283,8 +277,5 @@ namespace Ryujinx.Memory
                 MemoryManagement.Free(ptr);
             }
         }
-
-        private void ThrowObjectDisposed() => throw new ObjectDisposedException(nameof(MemoryBlock));
-        private void ThrowInvalidMemoryRegionException() => throw new InvalidMemoryRegionException();
     }
 }
